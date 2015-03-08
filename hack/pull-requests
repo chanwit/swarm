@@ -1,0 +1,3 @@
+#4   aidora/pisces  "build script and name patch"
+#435 docker/swarm   "nodes file discovery"
+#273 docker/swarm   "host-mode-port-filter"
