@@ -3,24 +3,21 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/docker/swarm/discovery"
-	_ "github.com/docker/swarm/discovery/consul"
-	_ "github.com/docker/swarm/discovery/etcd"
+	_ "github.com/docker/swarm/discovery/ansible"
 	_ "github.com/docker/swarm/discovery/file"
 	_ "github.com/docker/swarm/discovery/nodes"
 	"github.com/docker/swarm/discovery/token"
-	_ "github.com/docker/swarm/discovery/zookeeper"
 	"github.com/docker/swarm/version"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = path.Base(os.Args[0])
-	app.Usage = "a Docker-native clustering system"
+	app.Name = "pisces"
+	app.Usage = "a low-powered clustering system for Docker"
 	app.Version = version.VERSION + " (" + version.GITCOMMIT + ")"
 
 	app.Author = ""

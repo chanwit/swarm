@@ -20,7 +20,11 @@ func getDiscovery(c *cli.Context) string {
 	if len(c.Args()) == 1 {
 		return c.Args()[0]
 	}
-	return os.Getenv("SWARM_DISCOVERY")
+	dis := os.Getenv("SWARM_DISCOVERY")
+	if dis == "" {
+		dis = "ansible://all"
+	}
+	return dis
 }
 
 var (

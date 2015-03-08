@@ -1,0 +1,1 @@
+(cd $GOPATH && go build -o $GOBIN/pisces github.com/docker/swarm)
