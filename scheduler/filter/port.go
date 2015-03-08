@@ -14,21 +14,49 @@ type PortFilter struct {
 }
 
 func (p *PortFilter) Filter(config *dockerclient.ContainerConfig, nodes []cluster.Node) ([]cluster.Node, error) {
-	for _, port := range config.HostConfig.PortBindings {
-		for _, binding := range port {
+	if config.HostConfig.NetworkMode == "host" {
+		for port := range config.ExposedPorts {
 			candidates := []cluster.Node{}
 			for _, node := range nodes {
-				if !p.portAlreadyInUse(node, binding) {
+				if !p.portAlreadyExposed(node, port) {
 					candidates = append(candidates, node)
 				}
 			}
 			if len(candidates) == 0 {
-				return nil, fmt.Errorf("unable to find a node with port %s available", binding.HostPort)
+				return nil, fmt.Errorf("unable to find a node with port %s available in the Host mode", port)
 			}
 			nodes = candidates
 		}
+	} else {
+		for _, port := range config.HostConfig.PortBindings {
+			for _, binding := range port {
+				candidates := []cluster.Node{}
+				for _, node := range nodes {
+					if !p.portAlreadyInUse(node, binding) {
+						candidates = append(candidates, node)
+					}
+				}
+				if len(candidates) == 0 {
+					return nil, fmt.Errorf("unable to find a node with port %s available", binding.HostPort)
+				}
+				nodes = candidates
+			}
+		}
 	}
 	return nodes, nil
+}
+
+func (p *PortFilter) portAlreadyExposed(node cluster.Node, requestedPort string) bool {
+	for _, c := range node.Containers() {
+		if c.Info.HostConfig.NetworkMode == "host" {
+			for port := range c.Info.Config.ExposedPorts {
+				if port == requestedPort {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (p *PortFilter) portAlreadyInUse(node cluster.Node, requested dockerclient.PortBinding) bool {
