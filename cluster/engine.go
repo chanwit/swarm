@@ -395,6 +395,12 @@ func (e *Engine) Create(config *ContainerConfig, name string, pullImage bool) (*
 	// we don't want to mess with the original.
 	dockerConfig := config.ContainerConfig
 
+	// rewrite to make it use a platform-specific image
+	config.Image = rewriteWithDefaultRules(e, config.Image)
+	log.Infof("Create: rewrite %s", config.Image)
+
+	newConfig := *config
+
 	// nb of CPUs -> real CpuShares
 
 	// FIXME remove "duplicate" lines and move this to cluster/config.go
@@ -443,6 +449,8 @@ func (e *Engine) RemoveContainer(container *Container, force bool) error {
 
 // Pull an image on the engine
 func (e *Engine) Pull(image string, authConfig *dockerclient.AuthConfig) error {
+	image = rewriteWithDefaultRules(e, image)
+
 	if !strings.Contains(image, ":") {
 		image = image + ":latest"
 	}
