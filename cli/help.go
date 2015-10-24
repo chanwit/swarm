@@ -32,7 +32,7 @@ Run '{{.Name}} COMMAND --help' for more information on a command.
 
 {{.Usage}}{{if $DISCOVERY}}
 
-Arguments: 
+Arguments:
    <discovery>    discovery service to use [$SWARM_DISCOVERY]
                    * token://<token>
                    * consul://<ip>/<path>
@@ -44,6 +44,7 @@ Arguments:
 Options:
    {{range .Flags}}{{.}}
    {{end}}{{if (eq .Name "manage")}}{{printf "\t * swarm.overcommit=0.05\tovercommit to apply on resources"}}
+                                    {{printf "\t * swarm.tagextensionlabel=\tspecified label as image tag extension"}}
                                     {{printf "\t * mesos.address=\taddress to bind on [$SWARM_MESOS_ADDRESS]"}}
                                     {{printf "\t * mesos.port=\tport to bind on [$SWARM_MESOS_PORT]"}}
                                     {{printf "\t * mesos.offertimeout=10m\ttimeout for offers [$SWARM_MESOS_OFFER_TIMEOUT]"}}

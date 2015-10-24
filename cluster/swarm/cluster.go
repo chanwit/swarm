@@ -57,6 +57,7 @@ type Cluster struct {
 
 	overcommitRatio float64
 	engineOpts      *cluster.EngineOpts
+        tagExtensionLabel string
 	TLSConfig       *tls.Config
 }
 
@@ -72,10 +73,15 @@ func NewCluster(scheduler *scheduler.Scheduler, TLSConfig *tls.Config, discovery
 		pendingContainers: make(map[string]*pendingContainer),
 		overcommitRatio:   0.05,
 		engineOpts:        engineOptions,
+		tagExtensionLabel: "",
 	}
 
 	if val, ok := options.Float("swarm.overcommit", ""); ok {
 		cluster.overcommitRatio = val
+	}
+
+	if val, ok := options.String("swarm.tagextensionlabel", ""); ok {
+		cluster.tagExtensionLabel = val
 	}
 
 	discoveryCh, errCh := cluster.discovery.Watch(nil)
@@ -213,7 +219,7 @@ func (c *Cluster) addEngine(addr string) bool {
 		return false
 	}
 
-	engine := cluster.NewEngine(addr, c.overcommitRatio, c.engineOpts)
+	engine := cluster.NewEngine(addr, c.overcommitRatio, c.engineOpts, c.tagExtensionLabel)
 	if err := engine.RegisterEventHandler(c); err != nil {
 		log.Error(err)
 	}

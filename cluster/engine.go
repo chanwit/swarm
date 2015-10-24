@@ -13,12 +13,18 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	dockerfilters "github.com/docker/docker/pkg/parsers/filters"
 	"github.com/docker/docker/pkg/version"
 	"github.com/samalba/dockerclient"
 	"github.com/samalba/dockerclient/nopclient"
 )
 
 const (
+	// Force-refresh the state of the engine this often.
+	stateRefreshMinRange = 30 * time.Second
+	stateRefreshMaxRange = 60 * time.Second
+	stateRefreshRetries  = 3
+
 	// Timeout for requests sent out to the engine.
 	requestTimeout = 10 * time.Second
 
@@ -74,33 +80,35 @@ type Engine struct {
 	Memory int64
 	Labels map[string]string
 
-	stopCh          chan struct{}
-	refreshDelayer  *delayer
-	containers      map[string]*Container
-	images          []*Image
-	networks        map[string]*Network
-	volumes         map[string]*Volume
-	client          dockerclient.Client
-	eventHandler    EventHandler
-	healthy         bool
-	overcommitRatio int64
-	opts            *EngineOpts
+	stopCh            chan struct{}
+	refreshDelayer    *delayer
+	containers        map[string]*Container
+	images            []*Image
+	networks          map[string]*Network
+	volumes           map[string]*Volume
+	client            dockerclient.Client
+	eventHandler      EventHandler
+	healthy           bool
+	overcommitRatio   int64
+	opts              *EngineOpts
+	tagExtensionLabel string
 }
 
 // NewEngine is exported
 func NewEngine(addr string, overcommitRatio float64, opts *EngineOpts) *Engine {
 	e := &Engine{
-		Addr:            addr,
-		client:          nopclient.NewNopClient(),
-		refreshDelayer:  newDelayer(opts.RefreshMinInterval, opts.RefreshMaxInterval),
-		Labels:          make(map[string]string),
-		stopCh:          make(chan struct{}),
-		containers:      make(map[string]*Container),
-		networks:        make(map[string]*Network),
-		volumes:         make(map[string]*Volume),
-		healthy:         true,
-		overcommitRatio: int64(overcommitRatio * 100),
-		opts:            opts,
+		Addr:              addr,
+		client:            nopclient.NewNopClient(),
+		refreshDelayer:    newDelayer(opts.RefreshMinInterval, opts.RefreshMaxInterval),
+		Labels:            make(map[string]string),
+		stopCh:            make(chan struct{}),
+		containers:        make(map[string]*Container),
+		networks:          make(map[string]*Network),
+		volumes:           make(map[string]*Volume),
+		healthy:           true,
+		overcommitRatio:   int64(overcommitRatio * 100),
+		opts:              opts,
+		tagExtensionLabel: tagExtensionLabel,
 	}
 	return e
 }
@@ -586,6 +594,17 @@ func (e *Engine) Pull(image string, authConfig *dockerclient.AuthConfig) error {
 	if !strings.Contains(image, ":") {
 		image = image + ":latest"
 	}
+
+	// support tag-extension-label
+	if e.tagExtensionLabel != "" {
+		tagExtension := e.Labels[e.tagExtensionLabel]
+		if tagExtension != "" {
+			if strings.HasSuffix(image, "."+tagExtension) == false {
+				image = image + "." + tagExtension
+			}
+		}
+	}
+
 	if err := e.client.PullImage(image, authConfig); err != nil {
 		return err
 	}
